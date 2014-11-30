@@ -34,7 +34,7 @@ def load_channels():
 
 
 def load_programs(channel_id='', category_id=''):
-    SRAPI_PROGRAM_URL = "http://api.sr.se/api/v2/programs/index?format=json&pagination=false"
+    SRAPI_PROGRAM_URL = "http://api.sr.se/api/v2/programs/index?format=json&pagination=false&filter=program.hasondemand&filterValue=true"
     url = SRAPI_PROGRAM_URL
     if channel_id:
         url = url + "&channelid=" + channel_id
