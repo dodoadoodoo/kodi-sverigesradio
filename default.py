@@ -178,8 +178,8 @@ def list_program(program_id):
                           isLive='false', album=program_name, artist='Sveriges Radio',
                           duration=file['duration'], date=broadcast['broadcastdateutc'])
     xbmcplugin.setContent(HANDLE, 'songs')
-    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
