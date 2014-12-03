@@ -8,6 +8,8 @@ from urlparse import urlsplit, urlunsplit, SplitResult
 import xbmcgui
 import xbmcplugin
 import xbmcaddon
+from datetime import date
+from datetime import datetime
 
 def load_json(url):
     try:
@@ -66,14 +68,16 @@ def load_categories():
 
 
 def add_posts(title, url, description='', thumb='', isPlayable='true', isLive='false', isFolder=False, artist='',
-              album='', duration='', date=''):
+              album='', duration='', date_str=''):
     title = title.replace("\n", " ").encode("utf-8")
     description = description.encode("utf-8")
     listitem = xbmcgui.ListItem(title, description, iconImage=thumb)
-    if date:
-        listitem.setInfo(type='music', infoLabels={'title': title, 'duration': duration, 'date': date})
+    if date_str:
+        date_object = datetime.fromtimestamp(float(int(date_str[6:-2]) / 1000)).date()
+        date_strftime = date_object.strftime("%d.%m.%Y")
+        listitem.setInfo(type='music', infoLabels={'title': title, 'duration': duration, 'date': date_strftime, 'artist': artist, 'album': album})
     else:
-        listitem.setInfo(type='music', infoLabels={'title': title, 'duration': duration})
+        listitem.setInfo(type='music', infoLabels={'title': title, 'duration': duration, 'artist': artist, 'album': album})
     listitem.setProperty('IsPlayable', isPlayable)
     listitem.setProperty('IsLive', isLive)
     listitem.setPath(url)
@@ -123,7 +127,6 @@ def list_channel_programs(channel_id):
             add_posts(program['name'], program_url + str(program['id']), program['description'],
                       isFolder=True)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
-    xbmcplugin.setContent(HANDLE, 'albums')
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -139,7 +142,6 @@ def list_category_programs(category_id):
             add_posts(program['name'], program_url + str(program['id']), program['description'],
                       isFolder=True)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
-    xbmcplugin.setContent(HANDLE, 'albums')
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -155,7 +157,6 @@ def list_all_programs():
             add_posts(program['name'], program_url + str(program['id']), program['description'],
                       isFolder=True)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
-    xbmcplugin.setContent(HANDLE, 'albums')
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -168,13 +169,12 @@ def list_program(program_id):
             for file in broadcast['broadcastfiles']:
                 add_posts(broadcast['title'], file['url'], broadcast['description'],
                       broadcast['image'], isLive='false', album=program_name, artist='Sveriges Radio',
-                      duration=file['duration'], date=broadcast['broadcastdateutc'])
+                      duration=file['duration'], date_str=broadcast['broadcastdateutc'])
         else:
             for file in broadcast['broadcastfiles']:
                 add_posts(broadcast['title'], file['url'], broadcast['description'],
                           isLive='false', album=program_name, artist='Sveriges Radio',
-                          duration=file['duration'], date=broadcast['broadcastdateutc'])
-    xbmcplugin.setContent(HANDLE, 'songs')
+                          duration=file['duration'], date_str=broadcast['broadcastdateutc'])
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
     xbmcplugin.endOfDirectory(HANDLE)
