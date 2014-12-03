@@ -9,7 +9,6 @@ import xbmcgui
 import xbmcplugin
 import xbmcaddon
 
-
 def load_json(url):
     try:
         req = urllib2.Request(url)
@@ -68,15 +67,13 @@ def load_categories():
 
 def add_posts(title, url, description='', thumb='', isPlayable='true', isLive='false', isFolder=False, artist='',
               album='', duration='', date=''):
-    title = title.replace("\n", " ")
-    listitem = xbmcgui.ListItem(title, iconImage=thumb)
+    title = title.replace("\n", " ").encode("utf-8")
+    description = description.encode("utf-8")
+    listitem = xbmcgui.ListItem(title, description, iconImage=thumb)
     if date:
-        print "Adding date"
-        print date
-        listitem.setInfo(type='music', infoLabels={'title': title, 'artist': artist, 'album': album, 'duration': duration, 'date': date})
+        listitem.setInfo(type='music', infoLabels={'title': title, 'duration': duration, 'date': date})
     else:
-        print "No date"
-        listitem.setInfo(type='music', infoLabels={'title': title, 'artist': artist, 'album': album, 'duration': duration})
+        listitem.setInfo(type='music', infoLabels={'title': title, 'duration': duration})
     listitem.setProperty('IsPlayable', isPlayable)
     listitem.setProperty('IsLive', isLive)
     listitem.setPath(url)
@@ -119,11 +116,11 @@ def list_channel_programs(channel_id):
     programs = load_programs(channel_id=channel_id)
     for program in programs[0]['programs']:
         if program['programimage']:
-            add_posts(program['name'], program_url + str(program['id']), program['description'].encode("utf-8"),
+            add_posts(program['name'], program_url + str(program['id']), program['description'],
                       isFolder=True,
                       thumb=program['programimage'])
         else:
-            add_posts(program['name'], program_url + str(program['id']), program['description'].encode("utf-8"),
+            add_posts(program['name'], program_url + str(program['id']), program['description'],
                       isFolder=True)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
     xbmcplugin.setContent(HANDLE, 'albums')
@@ -135,11 +132,11 @@ def list_category_programs(category_id):
     programs = load_programs(category_id=category_id)
     for program in programs[0]['programs']:
         if program['programimage']:
-            add_posts(program['name'], program_url + str(program['id']), program['description'].encode("utf-8"),
+            add_posts(program['name'], program_url + str(program['id']), program['description'],
                       isFolder=True,
                       thumb=program['programimage'])
         else:
-            add_posts(program['name'], program_url + str(program['id']), program['description'].encode("utf-8"),
+            add_posts(program['name'], program_url + str(program['id']), program['description'],
                       isFolder=True)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
     xbmcplugin.setContent(HANDLE, 'albums')
@@ -151,11 +148,11 @@ def list_all_programs():
     programs = load_programs()
     for program in programs[0]['programs']:
         if program['programimage']:
-            add_posts(program['name'], program_url + str(program['id']), program['description'].encode("utf-8"),
+            add_posts(program['name'], program_url + str(program['id']), program['description'],
                       isFolder=True,
                       thumb=program['programimage'])
         else:
-            add_posts(program['name'], program_url + str(program['id']), program['description'].encode("utf-8"),
+            add_posts(program['name'], program_url + str(program['id']), program['description'],
                       isFolder=True)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
     xbmcplugin.setContent(HANDLE, 'albums')
