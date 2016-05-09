@@ -96,11 +96,20 @@ def load_categories():
 
 
 def create_live_channel(channel):
+    QUALITIES = ["lo", "normal", "hi"]
+    FORMATS = ["mp3", "aac"]
+    quality = plugin.get_setting('quality', choices=QUALITIES)
+    format = plugin.get_setting('format', choices=FORMATS)
     name = channel['name']
-    url = channel['liveaudio']['url']
+    id = channel['liveaudio']['id']
+    if quality == "normal":
+        url = "http://sverigesradio.se/topsy/direkt/" + str(id) + "." + format
+    else:
+        url = "http://sverigesradio.se/topsy/direkt/" + str(id) + "-" + quality + "." + format
     logo = channel['image']
     item = {'label': name, 'path': url, 'icon': logo, 'is_playable': True}
     return item
+
 
 
 def create_channel(channel):
