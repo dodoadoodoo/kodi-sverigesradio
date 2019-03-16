@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
-from datetime import timedelta
-from datetime import date
-from distutils.util import strtobool
-import sys
+import datetime
 import itertools
 import requests
-from xbmcswift2 import Plugin,  xbmcgui
+from xbmcswift2 import Plugin
 
 import pprint
 
@@ -20,7 +16,11 @@ STRINGS = {
     'live': 30013,
     'channels': 30014,
     'categories': 30015,
-    'all_programs': 30016
+    'all_programs': 30016,
+    'sports': 30017,
+    'all_broadcasts': 30018,
+    'leagues': 30019,
+    'teams': 30020,
 }
 
 QUALITIES = ["lo", "normal", "hi"]
@@ -84,7 +84,34 @@ def load_channels():
     return channels
 
 
-@plugin.cached(TTL=60 * 6)
+def load_sports_broadcasts(team=None, league=None):
+    SRAPI_SPORTS_URL = "http://api.sr.se/api/v2/sport/broadcasts"
+    quality = plugin.get_setting('quality', choices=QUALITIES)
+    params = {'format': 'json', 'pagination': 'false', 'audioquality': quality, 'liveaudiotemplateid': 5}
+    if team:
+        params['teamIds'] = team
+    if league:
+        params['filter'] = "league.id"
+        params['filterValue'] = league
+    broadcasts = load_json(SRAPI_SPORTS_URL, params)
+    return broadcasts
+
+
+def load_sports_leagues():
+    SRAPI_SPORTS_LEAGUES_URL = "http://api.sr.se/api/v2/sport/leagues"
+    params = {'format': 'json', 'pagination': 'false'}
+    leagues = load_json(SRAPI_SPORTS_LEAGUES_URL, params)
+    return leagues
+
+
+def load_sports_teams():
+    SRAPI_SPORTS_TEAMS_URL = "http://api.sr.se/api/v2/sport/teams"
+    params = {'format': 'json', 'pagination': 'false'}
+    teams = load_json(SRAPI_SPORTS_TEAMS_URL, params)
+    return teams
+
+
+@plugin.cached()
 def load_programs(channel_id='', category_id=''):
     SRAPI_PROGRAM_URL = "http://api.sr.se/api/v2/programs/index"
     params = {'format': 'json', 'pagination': 'false', 'filter': 'program.hasondemand', 'filterValue': 'true'}
@@ -96,11 +123,10 @@ def load_programs(channel_id='', category_id=''):
     return programs
 
 
-#@plugin.cached(TTL=60 * 6)
-def load_program_episodes(program_id, quality, page='1'):
-    page_size = str(plugin.get_setting('page_size'))
+@plugin.cached()
+def load_program_episodes(program_id, quality):
     SRAPI_EPISODE_URL = "http://api.sr.se/api/v2/episodes"
-    params = {'format': 'json', 'pagination': 'true', 'page': page, 'size': page_size, 'audioquality': quality, 'programid': program_id}
+    params = {'format': 'json', 'pagination': 'false', 'audioquality': quality, 'programid': program_id}
     episodes = load_json(SRAPI_EPISODE_URL, params)
     return episodes
 
@@ -127,6 +153,32 @@ def create_live_channel(channel):
     url = channel['liveaudio']['url']
     logo = channel['image']
     item = {'label': name, 'path': url, 'icon': logo, 'is_playable': True}
+    return item
+
+
+def create_sports_broadcast(broadcast):
+    date = json_date_as_datetime(broadcast['localstarttime'])
+    name = broadcast['name'] + " - " + format_datetime(date)
+    url = broadcast['liveaudio']['url']
+    date_strftime = date.strftime("%d.%m.%Y")
+    info = {'date': date_strftime, 'title': name, 'artist': _('Sveriges_Radio')}
+
+    item = {'label': name, 'path': url, 'is_playable': True, 'info': info}
+    pprint.pprint(broadcast['localstarttime'])
+    return item
+
+
+def create_sports_league(league):
+    id = league['id']
+    name = league['name']
+    item = {'label': name, 'path': plugin.url_for('list_sports_league_broadcasts', id=id), 'is_playable': False}
+    return item
+
+
+def create_sports_team(team):
+    id = team['id']
+    name = team['name'] + " - " + team['league']['name']
+    item = {'label': name, 'path': plugin.url_for('list_sports_team_broadcasts', id=id), 'is_playable': False}
     return item
 
 
@@ -171,61 +223,29 @@ def create_broadcast(episode, program_name, prefer_broadcasts):
 
 
 def extract_pod_file(items, pod_info, logo, name, program_name):
-    plugin.set_content('albums')
-    prefix_name = bool(strtobool(str(plugin.get_setting('prefix'))))
     url = pod_info['url']
-    date_fmt = xbmc.getRegion('dateshort') + " " + xbmc.getRegion('time')
-#   Remove seconds from timestamp   
-    date_fmt = date_fmt[:-3]
     date_str = pod_info['publishdateutc']
-    date_object = datetime.fromtimestamp(float(int(date_str[6:-5])))
-    date_strftime = date_object.strftime(date_fmt)
+    date_object = datetime.datetime.fromtimestamp(float(int(date_str[6:-2]) / 1000)).date()
+    date_strftime = date_object.strftime("%d.%m.%Y")
     duration = pod_info['duration']
-    pn = program_name + " " + date_strftime
-    mediatype = 'album'
-    album_description = date_strftime + "[CR]" + name
     size = pod_info['filesizeinbytes']
-    if prefix_name:
-        name = date_strftime+" "+name
-    info = {'duration': duration, 'date': date_strftime, 'title': name, 'size': size, 'album': pn,
-            'artist': _('Sveriges_Radio'), 'mediatype': mediatype }
-    properties = {'Album_Description': album_description }
-    item = {'label': name, 'path': url, 'icon': logo, 'is_playable': True, 'info': info, 'properties': properties }
+    info = {'duration': duration, 'date': date_strftime, 'title': name, 'size': size, 'album': program_name,
+            'artist': _('Sveriges_Radio')}
+    item = {'label': name, 'path': url, 'icon': logo, 'is_playable': True, 'info': info}
     items.append(item)
 
 
 def extract_broadcasts(items, broadcast, logo, name, program_name):
-    plugin.set_content('albums')
     for file in broadcast['broadcastfiles']:
         url = file['url']
-        print file
-        prefix_name = bool(strtobool(str(plugin.get_setting('prefix'))))
-        date_fmt = xbmc.getRegion('dateshort') + " " + xbmc.getRegion('time')
-#       Remove seconds from timestamp   
-        date_fmt = date_fmt[:-3]
-        plugin.log.debug(date_fmt)
-        try:
-            date_str = file['publishdateutc']
-            date_object = datetime.fromtimestamp(float(int(date_str[6:-2]) / 1000)).date()
-            date_object = datetime.fromtimestamp(float(int(date_str[6:-5])))
-            date_strftime = date_object.strftime(date_fmt)
-            plugin.log.debug(date_str)
-            plugin.log.debug(date_strftime)
-            duration = file['duration']
-            pn = program_name + " " + date_strftime
-            info_type = 'music'
-            album_description = date_strftime + "[CR]" + name
-            dbtype = 'album'
-            mediatype = 'album'
-            if prefix_name:
-                name = date_strftime+" "+name
-            info = {'duration': duration, 'date': date_strftime, 'title': name, 'album': pn,
-                    'artist': _('Sveriges_Radio'), 'comment': date_str, 'mediatype': mediatype }
-            properties = {'album_description': album_description }
-            item = {'label': name, 'info_type': info_type, 'path': url, 'icon': logo, 'is_playable': True, 'info': info, 'properties': properties }
-            items.append(item)
-        except KeyError:
-            print "Oops!  Missing values! ", file
+        date_str = file['publishdateutc']
+        date_object = datetime.datetime.fromtimestamp(float(int(date_str[6:-2]) / 1000)).date()
+        date_strftime = date_object.strftime("%d.%m.%Y")
+        duration = file['duration']
+        info = {'duration': duration, 'date': date_strftime, 'title': name, 'album': program_name,
+                'artist': _('Sveriges_Radio')}
+        item = {'label': name, 'path': url, 'icon': logo, 'is_playable': True, 'info': info}
+        items.append(item)
 
 
 @plugin.route('/channel/<id>')
@@ -238,14 +258,11 @@ def list_channel_programs(id):
         return items
 
 
-@plugin.route('/program/<id>/<page>/', name='list_program_a')
-@plugin.route('/program/<id>/', name='list_program', options={'page': '1'})
-def list_program(id,page):
-    page = int(page)
-    page_size = plugin.get_setting('page_size')
+@plugin.route('/program/<id>')
+def list_program(id):
     QUALITIES = ["lo", "normal", "hi"]
     quality = plugin.get_setting('quality', choices=QUALITIES)
-    response = load_program_episodes(id, quality, str(page))
+    response = load_program_episodes(id, quality)
     program_info = load_program_info(id)
     program_name = program_info["program"]["name"]
     if response:
@@ -256,21 +273,6 @@ def list_program(id,page):
         plugin.add_sort_method('playlist_order')
         plugin.add_sort_method('label')
         plugin.add_sort_method('date')
-
-        if page > 1:
-            items.insert(0, {
-                'label': '<< Prev',
-                'path': plugin.url_for('list_program_a', id=id, page=str(page - 1))
-            })
-        if len(items) > int(page_size) - 1:
-            items.append( {
-                'label': 'Next >>',
-                'path': plugin.url_for('list_program_a', id=id, page=str(page + 1))
-            })
-
-        if page > 1: 
-            return plugin.finish(items, update_listing=True)
-
         return items
 
 
@@ -314,6 +316,71 @@ def list_categories():
         return items
 
 
+@plugin.route('/sports/league/<id>')
+def list_sports_league_broadcasts(id):
+    # get broadcasts for league=id
+    response = load_sports_broadcasts(league=id)
+    if response:
+        items = [create_sports_broadcast(broadcast) for broadcast in response['broadcasts']]
+        plugin.add_sort_method('playlist_order')
+        plugin.add_sort_method('label')
+        plugin.add_sort_method('date')
+        return items
+
+
+@plugin.route('/sports/team/<id>')
+def list_sports_team_broadcasts(id):
+    # get broadcasts for team=id
+    response = load_sports_broadcasts(team=id)
+    if response:
+        items = [create_sports_broadcast(broadcast) for broadcast in response['broadcasts']]
+        plugin.add_sort_method('playlist_order')
+        plugin.add_sort_method('label')
+        plugin.add_sort_method('date')
+        return items
+
+
+@plugin.route('/sports/broadcasts/')
+def list_sports_broadcasts():
+    response = load_sports_broadcasts()
+    if response:
+        items = [create_sports_broadcast(broadcast) for broadcast in response['broadcasts']]
+        plugin.add_sort_method('playlist_order')
+        plugin.add_sort_method('label')
+        plugin.add_sort_method('date')
+        return items
+
+
+@plugin.route('/sports/leagues/')
+def list_sports_leagues():
+    response = load_sports_leagues()
+    if response:
+        items = [create_sports_league(league) for league in response['leagues']]
+        plugin.add_sort_method('playlist_order')
+        plugin.add_sort_method('label')
+        return items
+
+
+@plugin.route('/sports/teams/')
+def list_sports_teams():
+    response = load_sports_teams()
+    if response:
+        items = [create_sports_team(team) for team in response['teams']]
+        plugin.add_sort_method('playlist_order')
+        plugin.add_sort_method('label')
+        return items
+
+
+@plugin.route('/sports/')
+def list_sports():
+    items = [
+        {'label': _('all_broadcasts'), 'path': plugin.url_for('list_sports_broadcasts')},
+        {'label': _('leagues'), 'path': plugin.url_for('list_sports_leagues')},
+        {'label': _('teams'), 'path': plugin.url_for('list_sports_teams')}
+    ]
+    return items
+
+
 @plugin.route('/allprograms/')
 def list_all_programs():
     response = load_programs()
@@ -329,6 +396,7 @@ def index():
         {'label': _('live'), 'path': plugin.url_for('list_live')},
         {'label': _('channels'), 'path': plugin.url_for('list_channels')},
         {'label': _('categories'), 'path': plugin.url_for('list_categories')},
+        {'label': _('sports'), 'path': plugin.url_for('list_sports')},
         {'label': _('all_programs'), 'path': plugin.url_for('list_all_programs')},
     ]
     return items
