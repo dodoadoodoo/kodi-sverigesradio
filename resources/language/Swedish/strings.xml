@@ -14,12 +14,12 @@
     <string id="32000">Inställningar</string>
     <string id="32001">Kvalitet</string>
     <string id="32002">Föredra</string>
-    <string id="32003">Format</string>
+    <string id="32003">Prefix</string>
+    <string id="32004">Sidstorlek (Används för att begränsa antalet avsnitt som hämtas)</string>
     <string id="32111">Låg</string>
     <string id="32112">Normal</string>
     <string id="32113">Hög</string>
     <string id="32121">Sändningar (musik)</string>
     <string id="32122">Podcasts (ibland extra innehåll)</string>
-    <string id="32131">mp3</string>
-    <string id="32132">aac</string>
+    <string id="32123">Prefix med datum/tid</string>
 </strings>

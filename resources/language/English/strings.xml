@@ -14,12 +14,12 @@
     <string id="32000">Settings</string>
     <string id="32001">Quality</string>
     <string id="32002">Prefer</string>
-    <string id="32003">Format</string>
+    <string id="32003">Prefix</string>
+    <string id="32004">Page size (used to limit number of episodes retrieved in one go)</string>
     <string id="32111">Low</string>
     <string id="32112">Normal</string>
     <string id="32113">High</string>
     <string id="32121">Broadcasts (music)</string>
     <string id="32122">Podfiles (sometimes extra content)</string>
-    <string id="32131">mp3</string>
-    <string id="32132">aac</string>
+    <string id="32123">Prefix with date/time</string>
 </strings>
