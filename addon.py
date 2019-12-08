@@ -8,8 +8,6 @@ import itertools
 import requests
 from xbmcswift2 import Plugin
 
-import pprint
-
 plugin = Plugin()
 
 STRINGS = {
