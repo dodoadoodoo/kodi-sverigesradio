@@ -4,9 +4,9 @@
        version="2.2.0"
        provider-name="Daniel">
     <requires>
-        <import addon="xbmc.python" version="2.1.0"/>
-        <import addon="script.module.xbmcswift2" version="2.4.0"/>
-        <import addon="script.module.requests" version="2.4.3"/>
+        <import addon="xbmc.python" version="3.0.0" />
+        <import addon="script.module.xbmcswift2" version="19.0.1"/>
+        <import addon="script.module.requests" version="2.22.0"/>
     </requires>
     <extension point="xbmc.python.pluginsource" library="addon.py">
         <provides>audio</provides>
