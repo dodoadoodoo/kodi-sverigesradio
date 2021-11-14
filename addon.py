@@ -272,9 +272,10 @@ def list_program(id, page):
             })
 
         if page > 1:
-            return plugin.finish(items, update_listing=True)
+            return plugin.finish(items, update_listing=True, cache_to_disc=False)
 
-        return items
+        xbmc.executebuiltin('SetFocus(1)')
+        return plugin.finish(items, update_listing=True, cache_to_disc=False)
 
 
 @plugin.route('/category/<id>')
