@@ -82,7 +82,7 @@ def load_channels():
     return channels
 
 
-@plugin.cached()
+@plugin.cached(15)
 def load_programs(channel_id='', category_id=''):
     SRAPI_PROGRAM_URL = "http://api.sr.se/api/v2/programs/index"
     params = {'format': 'json', 'pagination': 'false', 'filter': 'program.hasondemand', 'filterValue': 'true'}
